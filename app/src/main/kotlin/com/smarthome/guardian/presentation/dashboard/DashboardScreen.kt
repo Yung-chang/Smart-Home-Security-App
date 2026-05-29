@@ -54,7 +54,8 @@ fun DashboardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    var showLogoutDialog by remember { mutableStateOf(false) }
+    var showLogoutDialog    by remember { mutableStateOf(false) }
+    var showAddDeviceDialog by remember { mutableStateOf(false) }
 
     if (showLogoutDialog) {
         AlertDialog(
@@ -70,6 +71,16 @@ fun DashboardScreen(
                 TextButton(onClick = { showLogoutDialog = false }) {
                     Text("取消")
                 }
+            },
+        )
+    }
+
+    if (showAddDeviceDialog) {
+        AddDeviceDialog(
+            onDismiss = { showAddDeviceDialog = false },
+            onConfirm = { name, type, roomId ->
+                viewModel.addDevice(name, type, roomId)
+                showAddDeviceDialog = false
             },
         )
     }
@@ -95,7 +106,7 @@ fun DashboardScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick          = onAddDevice,
+                onClick          = { showAddDeviceDialog = true },
                 containerColor   = PrimaryBlue,
                 contentColor     = Color.Black,
             ) {
@@ -178,10 +189,6 @@ private fun DashboardTopBar(
             // 設定
             IconButton(onClick = onSettings) {
                 Icon(Icons.Filled.Settings, contentDescription = "設定", tint = Color.White)
-            }
-            // 登出
-            IconButton(onClick = onLogout) {
-                Icon(Icons.Filled.ExitToApp, contentDescription = "登出", tint = Color.White)
             }
             // 用戶頭像（點擊展開個人資訊）
             user?.let { u ->
@@ -442,6 +449,101 @@ private fun DashboardSkeleton() {
             ) {}
         }
     }
+}
+
+// ── 新增設備 Dialog ──────────────────────────────────────────────────────────
+
+@Composable
+private fun AddDeviceDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (name: String, type: DeviceType, roomId: String) -> Unit,
+) {
+    var name        by remember { mutableStateOf("") }
+    var selectedType by remember { mutableStateOf(DeviceType.LIGHT) }
+    var selectedRoom by remember { mutableStateOf(Room.defaults[1]) } // 預設客廳
+    var typeExpanded by remember { mutableStateOf(false) }
+    var roomExpanded by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("新增設備") },
+        text  = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // 設備名稱
+                OutlinedTextField(
+                    value         = name,
+                    onValueChange = { name = it },
+                    label         = { Text("設備名稱") },
+                    placeholder   = { Text("例如：客廳燈光") },
+                    singleLine    = true,
+                    modifier      = Modifier.fillMaxWidth(),
+                )
+
+                // 設備類型
+                ExposedDropdownMenuBox(
+                    expanded         = typeExpanded,
+                    onExpandedChange = { typeExpanded = it },
+                ) {
+                    OutlinedTextField(
+                        value            = selectedType.displayName,
+                        onValueChange    = {},
+                        readOnly         = true,
+                        label            = { Text("設備類型") },
+                        leadingIcon      = { Icon(selectedType.icon, null, modifier = Modifier.size(20.dp)) },
+                        trailingIcon     = { ExposedDropdownMenuDefaults.TrailingIcon(typeExpanded) },
+                        modifier         = Modifier.fillMaxWidth().menuAnchor(),
+                    )
+                    ExposedDropdownMenu(
+                        expanded         = typeExpanded,
+                        onDismissRequest = { typeExpanded = false },
+                    ) {
+                        DeviceType.entries.forEach { type ->
+                            DropdownMenuItem(
+                                text         = { Text(type.displayName) },
+                                leadingIcon  = { Icon(type.icon, null, modifier = Modifier.size(18.dp)) },
+                                onClick      = { selectedType = type; typeExpanded = false },
+                            )
+                        }
+                    }
+                }
+
+                // 房間
+                ExposedDropdownMenuBox(
+                    expanded         = roomExpanded,
+                    onExpandedChange = { roomExpanded = it },
+                ) {
+                    OutlinedTextField(
+                        value            = selectedRoom.name,
+                        onValueChange    = {},
+                        readOnly         = true,
+                        label            = { Text("所在房間") },
+                        trailingIcon     = { ExposedDropdownMenuDefaults.TrailingIcon(roomExpanded) },
+                        modifier         = Modifier.fillMaxWidth().menuAnchor(),
+                    )
+                    ExposedDropdownMenu(
+                        expanded         = roomExpanded,
+                        onDismissRequest = { roomExpanded = false },
+                    ) {
+                        Room.defaults.filter { it.id != "all" }.forEach { room ->
+                            DropdownMenuItem(
+                                text    = { Text(room.name) },
+                                onClick = { selectedRoom = room; roomExpanded = false },
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick  = { if (name.isNotBlank()) onConfirm(name, selectedType, selectedRoom.id) },
+                enabled  = name.isNotBlank(),
+            ) { Text("新增") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        },
+    )
 }
 
 // ── Preview ───────────────────────────────────────────────────────────────────

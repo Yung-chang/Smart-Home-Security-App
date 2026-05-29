@@ -39,4 +39,7 @@ interface DeviceRepository {
 
     /** 強制從伺服器重新拉取所有設備清單。 */
     suspend fun refresh(): Result<Unit>
+
+    /** 新增設備至本地資料庫（無後端時的本地暫存）。 */
+    suspend fun addDevice(device: Device): Result<Unit>
 }

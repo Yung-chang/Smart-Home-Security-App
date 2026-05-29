@@ -108,6 +108,13 @@ class DeviceRepositoryImpl @Inject constructor(
         }
     }
 
+    // ── 新增（本地暫存） ──────────────────────────────────────────────────────
+
+    override suspend fun addDevice(device: Device): Result<Unit> = runCatching {
+        deviceDao.upsert(DeviceEntity.fromDomain(device))
+        Timber.d("Device added locally: ${device.name} (${device.type})")
+    }
+
     // ── 刷新（REST → Room） ───────────────────────────────────────────────────
 
     override suspend fun refresh(): Result<Unit> = runCatching {

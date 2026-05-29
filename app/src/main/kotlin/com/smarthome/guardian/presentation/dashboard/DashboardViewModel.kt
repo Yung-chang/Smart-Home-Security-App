@@ -2,8 +2,12 @@ package com.smarthome.guardian.presentation.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.smarthome.guardian.domain.model.Device
 import com.smarthome.guardian.domain.model.DeviceOperation
+import com.smarthome.guardian.domain.model.DeviceStatus
+import com.smarthome.guardian.domain.model.DeviceType
 import com.smarthome.guardian.domain.model.Room
+import java.util.UUID
 import com.smarthome.guardian.domain.repository.AuthRepository
 import com.smarthome.guardian.domain.repository.DeviceRepository
 import com.smarthome.guardian.domain.repository.SecurityRepository
@@ -88,6 +92,22 @@ class DashboardViewModel @Inject constructor(
 
     /** 清除錯誤訊息 Snackbar。 */
     fun clearError() = _uiState.update { it.copy(error = null) }
+
+    /** 新增設備至本地資料庫並立即顯示在清單。 */
+    fun addDevice(name: String, type: DeviceType, roomId: String) {
+        viewModelScope.launch {
+            val device = Device(
+                id     = UUID.randomUUID().toString(),
+                name   = name.trim(),
+                type   = type,
+                roomId = roomId,
+                status = DeviceStatus.OFFLINE,
+            )
+            deviceRepository.addDevice(device)
+                .onSuccess { Timber.d("Device added: ${device.name}") }
+                .onFailure { e -> _uiState.update { it.copy(error = "新增設備失敗：${e.message}") } }
+        }
+    }
 
     // ── 下拉重新整理 ──────────────────────────────────────────────────────────
 
