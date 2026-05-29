@@ -1,5 +1,6 @@
 package com.smarthome.guardian.auth
 
+import com.smarthome.guardian.data.local.preferences.SecurePreferences
 import com.smarthome.guardian.domain.model.User
 import com.smarthome.guardian.domain.model.UserRole
 import com.smarthome.guardian.domain.repository.AuthRepository
@@ -45,10 +46,11 @@ import org.junit.jupiter.api.TestInstance
 class AuthViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
-    private val authRepository  = mockk<AuthRepository>()
-    private val tokenManager    = mockk<TokenManager>(relaxed = true)
-    private val biometricHelper = mockk<BiometricHelper>(relaxed = true)
-    private val securityChecker = mockk<SecurityChecker>()
+    private val authRepository    = mockk<AuthRepository>()
+    private val tokenManager      = mockk<TokenManager>(relaxed = true)
+    private val biometricHelper   = mockk<BiometricHelper>(relaxed = true)
+    private val securityChecker   = mockk<SecurityChecker>()
+    private val securePreferences = mockk<SecurePreferences>(relaxed = true)
 
     private lateinit var viewModel: AuthViewModel
 
@@ -58,7 +60,7 @@ class AuthViewModelTest {
         // 預設安全檢查通過（空 violations 清單）
         every { securityChecker.runSecurityChecks() } returns
             SecurityCheckResult(violations = emptyList(), isBypassed = false)
-        viewModel = AuthViewModel(authRepository, tokenManager, biometricHelper, securityChecker)
+        viewModel = AuthViewModel(authRepository, tokenManager, biometricHelper, securityChecker, securePreferences)
     }
 
     @AfterEach
@@ -124,7 +126,7 @@ class AuthViewModelTest {
                 violations = listOf(SecurityViolation.ROOT_DETECTED),
                 isBypassed = false,
             )
-            val vm = AuthViewModel(authRepository, tokenManager, biometricHelper, securityChecker)
+            val vm = AuthViewModel(authRepository, tokenManager, biometricHelper, securityChecker, securePreferences)
 
             vm.checkInitialAuthState()
             advanceUntilIdle()
