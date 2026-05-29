@@ -52,6 +52,14 @@ data class DeviceUiState(
     // 溫控器
     val targetTemp: Float = 24f,
     val acMode: String = "冷氣",
+    // 警報器
+    val alarmVolume: Float = 80f,
+    val alarmTriggered: Boolean = false,
+    val alarmDelay: String = "立即",
+    // 定時開關
+    val scheduleEnabled: Boolean = false,
+    val scheduleOnTime: String = "08:00",
+    val scheduleOffTime: String = "22:00",
 )
 
 /** 錄影記錄項目。 */

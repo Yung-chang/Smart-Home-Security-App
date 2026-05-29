@@ -15,6 +15,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.smarthome.guardian.domain.model.DeviceType
 import com.smarthome.guardian.presentation.devices.panels.*
+import com.smarthome.guardian.presentation.devices.panels.AlarmPanel
 import com.smarthome.guardian.presentation.devices.panels.ThermostatPanel
 
 private val Background  = Color(0xFF0A0E1A)
@@ -133,6 +134,7 @@ private fun DevicePanel(
         DeviceType.SENSOR_MOTION,
         DeviceType.SENSOR_DOOR -> SensorPanel(uiState = uiState, viewModel = viewModel)
         DeviceType.THERMOSTAT  -> ThermostatPanel(uiState = uiState, viewModel = viewModel)
+        DeviceType.ALARM       -> AlarmPanel(uiState = uiState, viewModel = viewModel)
         else -> GenericDevicePanel(device = device, viewModel = viewModel)
     }
 }

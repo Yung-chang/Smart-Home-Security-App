@@ -6,6 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.smarthome.guardian.domain.model.CommandType
 import com.smarthome.guardian.domain.model.DeviceCommand
 import com.smarthome.guardian.domain.model.DeviceOperation
+import com.smarthome.guardian.domain.model.DeviceType
+import com.smarthome.guardian.domain.model.SensorReading
+import com.smarthome.guardian.domain.model.SensorSnapshot
 import com.smarthome.guardian.domain.repository.DeviceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -46,8 +49,33 @@ class DeviceViewModel @Inject constructor(
                 .catch { e -> _uiState.update { it.copy(error = e.message, isLoading = false) } }
                 .collect { device ->
                     _uiState.update { it.copy(device = device, isLoading = false) }
+                    // 感應器：注入示範歷史資料讓圖表可以顯示
+                    if (device != null &&
+                        (device.type == DeviceType.SENSOR_MOTION || device.type == DeviceType.SENSOR_DOOR) &&
+                        _uiState.value.sensorHistory.isEmpty()) {
+                        injectDemoSensorData(device.type)
+                    }
                 }
         }
+    }
+
+    private fun injectDemoSensorData(type: DeviceType) {
+        val now   = System.currentTimeMillis()
+        val unit  = if (type == DeviceType.SENSOR_MOTION) "次" else "次"
+        val base  = if (type == DeviceType.SENSOR_MOTION) 3f else 1f
+        val history = (23 downTo 0).map { hoursAgo ->
+            SensorReading(
+                timestamp = now - hoursAgo * 3_600_000L,
+                value     = (base + Math.random().toFloat() * 5f).coerceAtLeast(0f),
+                unit      = unit,
+            )
+        }
+        val snapshots = listOf(
+            SensorSnapshot(label = if (type == DeviceType.SENSOR_MOTION) "今日觸發次數" else "開關次數",
+                value = history.takeLast(24).sumOf { it.value.toDouble() }.toFloat(), unit = unit),
+            SensorSnapshot(label = "最近 1 小時", value = history.last().value, unit = unit),
+        )
+        _uiState.update { it.copy(sensorHistory = history, sensorSnapshots = snapshots) }
     }
 
     // ── 指令發送（需確認）────────────────────────────────────────────────────
@@ -204,6 +232,36 @@ class DeviceViewModel @Inject constructor(
             type       = CommandType.APPLY_SCENE,
             parameters = mapOf("acMode" to mode),
         ))
+    }
+
+    // ── 警報器控制 ────────────────────────────────────────────────────────────
+
+    fun setAlarmVolume(volume: Float) {
+        _uiState.update { it.copy(alarmVolume = volume) }
+        sendCommand(DeviceCommand(deviceId = deviceId, type = CommandType.SET_THRESHOLD,
+            parameters = mapOf("volume" to volume.toInt().toString())))
+    }
+
+    fun setAlarmDelay(delay: String) = _uiState.update { it.copy(alarmDelay = delay) }
+
+    fun silenceAlarm() {
+        _uiState.update { it.copy(alarmTriggered = false) }
+        sendCommand(DeviceCommand(deviceId = deviceId, type = CommandType.RESET_ALARM))
+    }
+
+    fun testAlarm() = _uiState.update { it.copy(alarmTriggered = true) }
+
+    // ── 定時開關 ──────────────────────────────────────────────────────────────
+
+    fun setSchedule(enabled: Boolean, onTime: String, offTime: String) {
+        _uiState.update { it.copy(
+            scheduleEnabled = enabled,
+            scheduleOnTime  = onTime,
+            scheduleOffTime = offTime,
+        )}
+        sendCommand(DeviceCommand(deviceId = deviceId, type = CommandType.SET_SCHEDULE,
+            parameters = mapOf("enabled" to enabled.toString(),
+                               "on" to onTime, "off" to offTime)))
     }
 
     // ── 私有：實際發送 ────────────────────────────────────────────────────────

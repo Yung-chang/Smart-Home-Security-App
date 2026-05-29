@@ -118,21 +118,7 @@ fun LightPanel(
             shape  = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Row(
-                modifier            = Modifier.padding(16.dp).fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment   = Alignment.CenterVertically,
-            ) {
-                Column {
-                    Text("定時開關", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                    Text("待 PROMPT 07 存取控制完成後啟用", color = TextSecondary, fontSize = 11.sp)
-                }
-                Switch(
-                    checked = false,
-                    onCheckedChange = { /* TODO PROMPT 07 */ },
-                    enabled = false,
-                )
-            }
+            ScheduleRow(uiState = uiState, viewModel = viewModel)
         }
     }
 }
@@ -233,5 +219,76 @@ private fun CircularColorPicker(
         val selY   = center.y + (selDist * sin(hRad)).toFloat()
         drawCircle(color = Color.White, radius = 8.dp.toPx(), center = Offset(selX, selY))
         drawCircle(color = selectedColor, radius = 6.dp.toPx(), center = Offset(selX, selY))
+    }
+}
+
+// ── 定時開關 ──────────────────────────────────────────────────────────────────
+
+@Composable
+private fun ScheduleRow(uiState: DeviceUiState, viewModel: DeviceViewModel) {
+    var showDialog  by remember { mutableStateOf(false) }
+    var onTime      by remember { mutableStateOf(uiState.scheduleOnTime) }
+    var offTime     by remember { mutableStateOf(uiState.scheduleOffTime) }
+    var enabled     by remember { mutableStateOf(uiState.scheduleEnabled) }
+
+    Row(
+        modifier              = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment     = Alignment.CenterVertically,
+    ) {
+        Column {
+            Text("定時開關", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            if (enabled)
+                Text("開 $onTime　關 $offTime", color = PrimaryBlue, fontSize = 11.sp)
+            else
+                Text("未設定", color = TextSecondary, fontSize = 11.sp)
+        }
+        Switch(
+            checked         = enabled,
+            onCheckedChange = {
+                enabled = it
+                if (it) showDialog = true
+                else viewModel.setSchedule(false, onTime, offTime)
+            },
+        )
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("設定定時開關") },
+            text  = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("開燈時間", color = TextSecondary, fontSize = 12.sp)
+                    OutlinedTextField(
+                        value         = onTime,
+                        onValueChange = { if (it.length <= 5) onTime = it },
+                        label         = { Text("HH:MM") },
+                        singleLine    = true,
+                        modifier      = Modifier.fillMaxWidth(),
+                    )
+                    Text("關燈時間", color = TextSecondary, fontSize = 12.sp)
+                    OutlinedTextField(
+                        value         = offTime,
+                        onValueChange = { if (it.length <= 5) offTime = it },
+                        label         = { Text("HH:MM") },
+                        singleLine    = true,
+                        modifier      = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.setSchedule(true, onTime, offTime)
+                    showDialog = false
+                }) { Text("確認") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    enabled = false
+                    showDialog = false
+                }) { Text("取消") }
+            },
+        )
     }
 }

@@ -1,6 +1,7 @@
 package com.smarthome.guardian.presentation.devices.panels
 
 import android.content.Context
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -262,6 +263,7 @@ private fun MotionDetectionCanvas(modifier: Modifier = Modifier) {
 @Composable
 private fun RecordingRow(entry: RecordingEntry) {
     val startStr = SimpleDateFormat("MM/dd HH:mm", Locale.getDefault()).format(Date(entry.startTime))
+    val context  = LocalContext.current
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color    = SurfaceCard,
@@ -277,7 +279,13 @@ private fun RecordingRow(entry: RecordingEntry) {
                 Text(startStr, color = Color.White, fontSize = 13.sp)
                 Text("${entry.durationSeconds}s", color = TextSecondary, fontSize = 11.sp)
             }
-            IconButton(onClick = { /* TODO: 播放 */ }) {
+            IconButton(onClick = {
+                android.widget.Toast.makeText(
+                    context,
+                    "播放功能需要後端串流伺服器連線（rtsp://）",
+                    android.widget.Toast.LENGTH_SHORT,
+                ).show()
+            }) {
                 Icon(Icons.Filled.PlayCircle, null, tint = PrimaryBlue)
             }
         }
