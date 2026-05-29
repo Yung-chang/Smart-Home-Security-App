@@ -1,6 +1,7 @@
 package com.smarthome.guardian.presentation.dashboard
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -182,22 +183,66 @@ private fun DashboardTopBar(
             IconButton(onClick = onLogout) {
                 Icon(Icons.Filled.ExitToApp, contentDescription = "登出", tint = Color.White)
             }
-            // 用戶頭像
-            user?.let {
-                Box(
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(PrimaryBlue.copy(alpha = 0.2f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text       = it.name.take(1).uppercase(),
-                        color      = PrimaryBlue,
-                        fontSize   = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
+            // 用戶頭像（點擊展開個人資訊）
+            user?.let { u ->
+                var expanded by remember { mutableStateOf(false) }
+                Box(modifier = Modifier.padding(end = 8.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(PrimaryBlue.copy(alpha = 0.2f))
+                            .clickable { expanded = true },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text       = u.name.take(1).uppercase(),
+                            color      = PrimaryBlue,
+                            fontSize   = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                    DropdownMenu(
+                        expanded         = expanded,
+                        onDismissRequest = { expanded = false },
+                    ) {
+                        // 姓名
+                        DropdownMenuItem(
+                            text    = {
+                                Column {
+                                    Text(u.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text(u.email, color = TextSecondary, fontSize = 12.sp)
+                                }
+                            },
+                            onClick = {},
+                            enabled = false,
+                        )
+                        // 角色
+                        DropdownMenuItem(
+                            text    = {
+                                Text(
+                                    text      = "角色：${u.role.name}",
+                                    color     = PrimaryBlue,
+                                    fontSize  = 12.sp,
+                                )
+                            },
+                            onClick = {},
+                            enabled = false,
+                        )
+                        HorizontalDivider()
+                        // 登出
+                        DropdownMenuItem(
+                            text    = { Text("登出", color = Color(0xFFFF4444)) },
+                            onClick = { expanded = false; onLogout() },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Filled.ExitToApp,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFF4444),
+                                )
+                            },
+                        )
+                    }
                 }
             }
         },
