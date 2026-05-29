@@ -1,0 +1,30 @@
+## Android / Gradle
+.gradle/
+build/
+local.properties
+*.jks
+*.keystore
+keystore_base64.txt
+
+## Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+
+## Google Services
+google-services.json
+
+## Test reports
+app/build/reports/
+app/build/test-results/
+
+## ProGuard mapping（敏感，應另外備份）
+app/build/outputs/mapping/
+
+## OS
+Thumbs.db

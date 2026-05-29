@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 11 以下 Auto Backup 規則（android:fullBackupContent）。
+    Android 12+ 使用 data_extraction_rules.xml。
+
+    排除所有敏感資料（OWASP M2）：
+    - SharedPreferences 含 JWT Token、FCM Token（EncryptedSharedPreferences）
+    - Room 資料庫（SQLCipher 加密，金鑰與裝置綁定）
+    - Cache 目錄（含匯出的 PDF/CSV 暫存檔）
+-->
+<full-backup-content>
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="database"   path="." />
+    <exclude domain="file"       path="." />
+    <exclude domain="external"   path="." />
+</full-backup-content>

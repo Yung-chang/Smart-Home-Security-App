@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    FileProvider 路徑設定。
+
+    供稽核日誌 CSV/PDF 匯出（AuditRepositoryImpl.exportLogs）使用。
+    透過 FileProvider 共享 cache 目錄中的匯出檔案，
+    而非直接暴露檔案系統路徑（OWASP M1 — 安全平台使用）。
+
+    使用方式：
+    - AuditRepositoryImpl 以 FileProvider.getUriForFile(context, "${packageName}.fileprovider", file) 取得 Uri
+    - 呼叫端 Intent 需附加 FLAG_GRANT_READ_URI_PERMISSION
+-->
+<paths>
+    <!-- APP 私有 cache 目錄（匯出的 CSV/PDF 暫存於此）-->
+    <cache-path name="audit_exports" path="." />
+
+    <!-- 外部 cache 目錄（若需要分享至其他 APP 時使用）-->
+    <external-cache-path name="external_exports" path="." />
+</paths>

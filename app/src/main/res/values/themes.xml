@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    XML 視窗主題：僅用於 Activity 啟動前的系統視窗背景，
+    所有實際 UI 主題由 Compose 的 SmartHomeGuardianTheme 處理。
+    背景色 #0A0E1A 與 Color.kt 的 Background 一致，避免啟動閃白。
+-->
+<resources>
+    <style name="Theme.SmartHomeGuardian" parent="android:Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">#0A0E1A</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:statusBarColor">#0A0E1A</item>
+        <item name="android:navigationBarColor">#0A0E1A</item>
+    </style>
+</resources>

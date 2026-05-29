@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Network Security Config
+
+    【開發階段】pin-set 已停用，待真實伺服器部署後填入 SHA-256 pin 再啟用。
+    【上線前】執行下方指令取得 pin（替換 your-domain.com）：
+
+      Windows PowerShell（需 OpenSSL）：
+        openssl s_client -connect your-domain.com:443 2>$null |
+        openssl x509 -pubkey -noout |
+        openssl pkey -pubin -outform der |
+        openssl dgst -sha256 -binary |
+        openssl base64
+
+      或使用 keytool：
+        keytool -printcert -sslserver your-domain.com:443
+
+    取得後取消下方 pin-set 區塊的註解，填入兩組 pin（leaf cert + CA backup）。
+    OWASP M3：每次憑證輪換前記得同步更新 pin + expiration。
+-->
+<network-security-config>
+
+    <!-- 全域：禁止所有明文流量 -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Production API + WebSocket -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">api.smarthome.local</domain>
+        <!--
+        TODO：伺服器部署後填入真實 pin，並取消此區塊的註解
+        <pin-set expiration="2028-12-31">
+            <pin digest="SHA-256">LEAF_CERT_SHA256_BASE64_HERE=</pin>
+            <pin digest="SHA-256">INTERMEDIATE_CA_SHA256_BASE64_HERE=</pin>
+        </pin-set>
+        -->
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- MQTT Broker -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">mqtt.smarthome.local</domain>
+        <!--
+        TODO：伺服器部署後填入真實 pin，並取消此區塊的註解
+        <pin-set expiration="2028-12-31">
+            <pin digest="SHA-256">LEAF_CERT_SHA256_BASE64_HERE=</pin>
+            <pin digest="SHA-256">INTERMEDIATE_CA_SHA256_BASE64_HERE=</pin>
+        </pin-set>
+        -->
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!--
+        Debug 專用：信任使用者手動安裝的憑證（Charles Proxy / mitmproxy 抓包用）。
+        Release build 此區塊被系統自動忽略，不影響正式安全性。
+    -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+
+</network-security-config>

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-Command keytool -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-Command gradle -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-ChildItem \"$env:USERPROFILE\\\\.gradle\\\\wrapper\\\\dists\" -ErrorAction SilentlyContinue | Select-Object Name | Sort-Object Name -Descending | Select-Object -First 5)",
+      "PowerShell(Get-ChildItem \"$env:USERPROFILE\\\\.gradle\\\\wrapper\\\\dists\\\\gradle-8.9-bin\" -Recurse -Filter \"gradle.bat\" -ErrorAction SilentlyContinue | Select-Object -First 1 FullName)",
+      "PowerShell(Get-ChildItem \"$env:LOCALAPPDATA\\\\Android\\\\Sdk\\\\build-tools\" | Sort-Object Name -Descending | Select-Object -First 1 | ForEach-Object { Get-ChildItem $_.FullName -Filter \"apksigner.bat\" | Select-Object FullName })",
+      "PowerShell(Set-Clipboard)"
+    ]
+  }
+}
