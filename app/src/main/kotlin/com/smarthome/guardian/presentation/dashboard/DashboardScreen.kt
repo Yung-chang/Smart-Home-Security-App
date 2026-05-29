@@ -48,10 +48,30 @@ fun DashboardScreen(
     onNavigateToDevice: (String) -> Unit,
     onNavigateToSettings: () -> Unit,
     onAddDevice: () -> Unit,
+    onLogout: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("確認登出") },
+            text  = { Text("登出後需要重新驗證身份才能使用 APP。") },
+            confirmButton = {
+                TextButton(onClick = { showLogoutDialog = false; onLogout() }) {
+                    Text("登出", color = Color(0xFFFF4444))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("取消")
+                }
+            },
+        )
+    }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
@@ -69,6 +89,7 @@ fun DashboardScreen(
                 unreadAlertCount = uiState.unreadAlertCount,
                 onNotifications  = onNavigateToSecurity,
                 onSettings       = onNavigateToSettings,
+                onLogout         = { showLogoutDialog = true },
             )
         },
         floatingActionButton = {
@@ -114,6 +135,7 @@ private fun DashboardTopBar(
     unreadAlertCount: Int,
     onNotifications: () -> Unit,
     onSettings: () -> Unit,
+    onLogout: () -> Unit = {},
 ) {
     TopAppBar(
         title = {
@@ -155,6 +177,10 @@ private fun DashboardTopBar(
             // 設定
             IconButton(onClick = onSettings) {
                 Icon(Icons.Filled.Settings, contentDescription = "設定", tint = Color.White)
+            }
+            // 登出
+            IconButton(onClick = onLogout) {
+                Icon(Icons.Filled.ExitToApp, contentDescription = "登出", tint = Color.White)
             }
             // 用戶頭像
             user?.let {

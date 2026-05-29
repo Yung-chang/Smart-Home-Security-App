@@ -24,6 +24,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.smarthome.guardian.presentation.access.AccessControlScreen
 import com.smarthome.guardian.presentation.audit.AuditLogScreen
+import com.smarthome.guardian.presentation.auth.AuthViewModel
 import com.smarthome.guardian.presentation.auth.BiometricScreen
 import com.smarthome.guardian.presentation.auth.LoginScreen
 import com.smarthome.guardian.presentation.dashboard.DashboardScreen
@@ -147,13 +148,20 @@ private fun SmartHomeNavGraph() {
 
         // ── 主儀表板 ──────────────────────────────────────────────────────────
         composable(AppRoutes.DASHBOARD) {
-            val context = LocalContext.current
+            val context     = LocalContext.current
+            val authViewModel: AuthViewModel = androidx.hilt.navigation.compose.hiltViewModel()
             LaunchedEffect(Unit) { SecurityService.start(context) }
             DashboardScreen(
                 onNavigateToSecurity = { navController.navigate(AppRoutes.SECURITY) },
                 onNavigateToDevice   = { id -> navController.navigate(AppRoutes.deviceDetail(id)) },
                 onNavigateToSettings = { navController.navigate(AppRoutes.ACCESS_CONTROL) },
                 onAddDevice          = { /* TODO */ },
+                onLogout             = {
+                    authViewModel.logout()
+                    navController.navigate(AppRoutes.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
             )
         }
 
