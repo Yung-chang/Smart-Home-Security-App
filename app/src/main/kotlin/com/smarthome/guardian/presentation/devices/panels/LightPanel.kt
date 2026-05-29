@@ -96,7 +96,11 @@ fun LightPanel(
         ) {
             SCENES.forEach { (name, temp, brightness) ->
                 OutlinedButton(
-                    onClick  = { viewModel.applyScene(name) },
+                    onClick  = {
+                        viewModel.setColorTemp(temp)
+                        viewModel.setBrightness(brightness)
+                        viewModel.applyScene(name)
+                    },
                     modifier = Modifier.weight(1f),
                     shape    = RoundedCornerShape(8.dp),
                     colors   = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryBlue),

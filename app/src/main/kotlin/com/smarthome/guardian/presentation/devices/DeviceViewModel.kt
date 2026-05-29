@@ -91,6 +91,15 @@ class DeviceViewModel @Inject constructor(
      */
     fun sendCommand(command: DeviceCommand) = sendCommandInternal(command)
 
+    // ── 開關（通用）──────────────────────────────────────────────────────────
+
+    fun toggleDevice(newState: Boolean) {
+        sendCommand(DeviceCommand(
+            deviceId   = deviceId,
+            type       = if (newState) CommandType.TOGGLE_ON else CommandType.TOGGLE_OFF,
+        ))
+    }
+
     // ── 燈光控制 ──────────────────────────────────────────────────────────────
 
     fun setBrightness(brightness: Float) {
@@ -176,6 +185,26 @@ class DeviceViewModel @Inject constructor(
     fun clearTempCode() = _uiState.update { it.copy(tempCode = null) }
     fun clearError()    = _uiState.update { it.copy(error = null) }
     fun clearSuccess()  = _uiState.update { it.copy(commandSuccess = null) }
+
+    // ── 溫控器控制 ────────────────────────────────────────────────────────────
+
+    fun setTargetTemp(temp: Float) {
+        _uiState.update { it.copy(targetTemp = temp.coerceIn(16f, 30f)) }
+        sendCommand(DeviceCommand(
+            deviceId   = deviceId,
+            type       = CommandType.SET_THRESHOLD,
+            parameters = mapOf("targetTemp" to temp.toInt().toString()),
+        ))
+    }
+
+    fun setAcMode(mode: String) {
+        _uiState.update { it.copy(acMode = mode) }
+        sendCommand(DeviceCommand(
+            deviceId   = deviceId,
+            type       = CommandType.APPLY_SCENE,
+            parameters = mapOf("acMode" to mode),
+        ))
+    }
 
     // ── 私有：實際發送 ────────────────────────────────────────────────────────
 

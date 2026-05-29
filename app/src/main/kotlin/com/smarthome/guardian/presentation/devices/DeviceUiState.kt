@@ -49,6 +49,9 @@ data class DeviceUiState(
     // 攝影機
     val sensitivity: Float = 50f,
     val recordings: List<RecordingEntry> = emptyList(),
+    // 溫控器
+    val targetTemp: Float = 24f,
+    val acMode: String = "冷氣",
 )
 
 /** 錄影記錄項目。 */
