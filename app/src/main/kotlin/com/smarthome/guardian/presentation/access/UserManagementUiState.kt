@@ -1,6 +1,7 @@
 package com.smarthome.guardian.presentation.access
 
 import com.smarthome.guardian.domain.model.AccessRule
+import com.smarthome.guardian.domain.model.Device
 import com.smarthome.guardian.domain.model.QrCodeData
 import com.smarthome.guardian.domain.model.User
 
@@ -21,6 +22,7 @@ import com.smarthome.guardian.domain.model.User
  */
 data class UserManagementUiState(
     val users: List<User>                           = emptyList(),
+    val devices: List<Device>                       = emptyList(),
     val rules: List<AccessRule>                     = emptyList(),
     val conflictPairs: List<Pair<AccessRule, AccessRule>> = emptyList(),
     val qrCodes: List<QrCodeData>                   = emptyList(),

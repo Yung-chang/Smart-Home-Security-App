@@ -6,6 +6,7 @@ import com.smarthome.guardian.domain.model.AccessRule
 import com.smarthome.guardian.domain.model.User
 import com.smarthome.guardian.domain.model.UserRole
 import com.smarthome.guardian.domain.repository.AccessRuleRepository
+import com.smarthome.guardian.domain.repository.DeviceRepository
 import com.smarthome.guardian.domain.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -23,6 +24,7 @@ import javax.inject.Inject
 class UserManagementViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val accessRuleRepository: AccessRuleRepository,
+    private val deviceRepository: DeviceRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UserManagementUiState())
@@ -32,6 +34,7 @@ class UserManagementViewModel @Inject constructor(
         observeUsers()
         observeRules()
         observeQrCodes()
+        observeDevices()
     }
 
     // ── Tab 切換 ──────────────────────────────────────────────────────────────
@@ -164,6 +167,14 @@ class UserManagementViewModel @Inject constructor(
             userRepository.getUsers()
                 .catch { e -> Timber.e(e) }
                 .collect { users -> _uiState.update { it.copy(users = users, isLoading = false) } }
+        }
+    }
+
+    private fun observeDevices() {
+        viewModelScope.launch {
+            deviceRepository.getDevices()
+                .catch { e -> Timber.e(e, "Failed to load devices for rule wizard") }
+                .collect { devices -> _uiState.update { it.copy(devices = devices) } }
         }
     }
 

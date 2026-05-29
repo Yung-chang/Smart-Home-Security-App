@@ -133,8 +133,14 @@ fun DeviceCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text     = if (device.isOn) "開啟" else "關閉",
-                        color    = if (device.isOn) PrimaryBlue else TextSecondary,
+                        text  = when (device.type) {
+                            DeviceType.DOOR_LOCK -> if (device.isOn) "已解鎖" else "已上鎖"
+                            else                 -> if (device.isOn) "開啟"   else "關閉"
+                        },
+                        color = when (device.type) {
+                            DeviceType.DOOR_LOCK -> if (device.isOn) SuccessGreen else TextSecondary
+                            else                 -> if (device.isOn) PrimaryBlue  else TextSecondary
+                        },
                         fontSize = 12.sp,
                     )
                     Switch(

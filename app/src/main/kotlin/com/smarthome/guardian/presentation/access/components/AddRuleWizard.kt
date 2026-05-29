@@ -36,6 +36,7 @@ private val TextSecondary = Color(0xFF8899AA)
 @Composable
 fun AddRuleWizard(
     users: List<User>,
+    devices: List<Device> = emptyList(),
     onDismiss: () -> Unit,
     onConfirm: (AccessRule) -> Unit,
 ) {
@@ -91,7 +92,7 @@ fun AddRuleWizard(
 
             // ── 步驟內容 ──────────────────────────────────────────────────────
             when (step) {
-                1 -> Step1DeviceSelect(selectedDeviceId = deviceId, onSelect = { deviceId = it })
+                1 -> Step1DeviceSelect(selectedDeviceId = deviceId, devices = devices, onSelect = { deviceId = it })
                 2 -> Step2UserSelect(users = users, selectedUserId = userId, onSelect = { userId = it })
                 3 -> Step3TimeWindow(
                     useTimeWindow  = useTimeWindow,
@@ -158,20 +159,39 @@ fun AddRuleWizard(
 // ── Step 1：選擇設備 ──────────────────────────────────────────────────────────
 
 @Composable
-private fun Step1DeviceSelect(selectedDeviceId: String, onSelect: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        WizardOption(
-            label    = "所有設備",
-            subLabel = "規則套用至全部設備",
-            selected = selectedDeviceId == "*",
-            onClick  = { onSelect("*") },
-        )
-        WizardOption(
-            label    = "特定設備（輸入 ID）",
-            subLabel = selectedDeviceId.takeIf { it != "*" } ?: "輸入設備 ID",
-            selected = selectedDeviceId != "*",
-            onClick  = { /* TODO: 顯示設備選取清單 */ onSelect("device-001") },
-        )
+private fun Step1DeviceSelect(
+    selectedDeviceId: String,
+    devices: List<Device>,
+    onSelect: (String) -> Unit,
+) {
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        item {
+            WizardOption(
+                label    = "所有設備",
+                subLabel = "規則套用至全部 ${devices.size} 台設備",
+                selected = selectedDeviceId == "*",
+                onClick  = { onSelect("*") },
+            )
+        }
+        if (devices.isEmpty()) {
+            item {
+                Text(
+                    text     = "尚未載入設備，請稍後再試",
+                    color    = TextSecondary,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(vertical = 8.dp),
+                )
+            }
+        } else {
+            items(devices) { device ->
+                WizardOption(
+                    label    = device.name,
+                    subLabel = "${device.type.displayName}・${device.status.name.lowercase()}",
+                    selected = selectedDeviceId == device.id,
+                    onClick  = { onSelect(device.id) },
+                )
+            }
+        }
     }
 }
 

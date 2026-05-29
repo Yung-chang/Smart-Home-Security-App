@@ -65,6 +65,7 @@ fun AccessControlScreen(
     if (uiState.showRuleWizard) {
         AddRuleWizard(
             users     = uiState.users,
+            devices   = uiState.devices,
             onDismiss = viewModel::dismissRuleWizard,
             onConfirm = { rule -> viewModel.addRule(rule) },
         )

@@ -102,6 +102,14 @@ class SecurityViewModel @Inject constructor(
 
     fun clearSelection() = _historyState.update { it.copy(selectedIds = emptySet()) }
 
+    /** 確認目前即時事件列表中所有未確認的警報（一鍵清空）。 */
+    fun acknowledgeAllLive() {
+        val ids = _uiState.value.liveAlerts
+            .filter { !it.isAcknowledged }
+            .map { it.id }
+        if (ids.isNotEmpty()) bulkAcknowledge(ids)
+    }
+
     // ── 篩選 ──────────────────────────────────────────────────────────────────
 
     fun updateFilter(filter: AlertFilter) {
@@ -150,7 +158,15 @@ class SecurityViewModel @Inject constructor(
             securityRepository.getAlerts()
                 .catch { e -> Timber.e(e, "Alerts flow error") }
                 .collect { alerts ->
-                    val live = alerts.sortedByDescending { it.timestamp }
+                    val now = System.currentTimeMillis()
+                    val thirtyMin = 30 * 60_000L
+                    // 即時事件：未確認（全部保留）+ 30分鐘內已確認（提供操作上下文）
+                    val live = alerts
+                        .filter { alert ->
+                            !alert.isAcknowledged || (now - alert.timestamp < thirtyMin)
+                        }
+                        .sortedByDescending { it.timestamp }
+                        .take(20)
                     _uiState.update { it.copy(liveAlerts = live, isLoading = false) }
                     // CRITICAL 警報立即顯示本地通知
                     live.filter { it.severity == Severity.CRITICAL && !it.isAcknowledged }

@@ -120,19 +120,28 @@ fun SecurityMonitorScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment     = Alignment.CenterVertically,
                 ) {
-                    Text("即時事件", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    val unread = uiState.liveAlerts.count { !it.isAcknowledged }
-                    if (unread > 0) {
-                        Surface(
-                            color = Color(0xFFFF4444).copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(12.dp),
-                        ) {
-                            Text(
-                                "$unread 筆未確認",
-                                color    = Color(0xFFFF4444),
-                                fontSize = 12.sp,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("即時事件", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        val unread = uiState.liveAlerts.count { !it.isAcknowledged }
+                        if (unread > 0) {
+                            Spacer(Modifier.width(8.dp))
+                            Surface(
+                                color = Color(0xFFFF4444).copy(alpha = 0.2f),
+                                shape = RoundedCornerShape(12.dp),
+                            ) {
+                                Text(
+                                    "$unread 筆未確認",
+                                    color    = Color(0xFFFF4444),
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                )
+                            }
+                        }
+                    }
+                    val hasUnread = uiState.liveAlerts.any { !it.isAcknowledged }
+                    if (hasUnread) {
+                        TextButton(onClick = { viewModel.acknowledgeAllLive() }) {
+                            Text("全部確認", color = PrimaryBlue, fontSize = 12.sp)
                         }
                     }
                 }
@@ -264,17 +273,15 @@ private fun HomePlanCanvas(
     alerts: List<SecurityAlert>,
     modifier: Modifier = Modifier,
 ) {
-    // 預定義房間格局（比例座標 0..1）
+    // 2×2 平面圖（比例座標 0..1，roomId 對應 DemoSimulator 的設備房間）
     val rooms = listOf(
-        RoomRect("客廳",    0.05f, 0.05f, 0.55f, 0.50f),
-        RoomRect("主臥",    0.60f, 0.05f, 0.95f, 0.50f),
-        RoomRect("廚房",    0.05f, 0.55f, 0.40f, 0.95f),
-        RoomRect("門口",    0.45f, 0.55f, 0.70f, 0.95f),
-        RoomRect("浴室",    0.75f, 0.55f, 0.95f, 0.95f),
+        RoomDef("客廳", "living_room", 0.04f, 0.04f, 0.54f, 0.52f),
+        RoomDef("臥室", "bedroom",     0.58f, 0.04f, 0.96f, 0.52f),
+        RoomDef("廚房", "kitchen",     0.04f, 0.56f, 0.54f, 0.96f),
+        RoomDef("門口", "entrance",    0.58f, 0.56f, 0.96f, 0.96f),
     )
 
     // 建立 roomId → 最高嚴重等級的 Map
-    val alertedDeviceIds = alerts.mapNotNull { it.deviceId }.toSet()
     val roomAlertLevel: Map<String, Severity> = buildMap {
         alerts.forEach { alert ->
             alert.deviceId?.let { devId ->
@@ -296,10 +303,9 @@ private fun HomePlanCanvas(
             val top    = room.top * h
             val right  = room.right * w
             val bottom = room.bottom * h
-            val rect   = Rect(left, top, right, bottom)
 
-            // 房間顏色（依警報等級）
-            val severity = roomAlertLevel[room.name.lowercase().replace("主", "bed")]
+            // 房間顏色（依警報等級，使用 roomId 精確對應）
+            val severity = roomAlertLevel[room.roomId]
             val fillColor = when (severity) {
                 Severity.CRITICAL -> Color(0xFFFF4444).copy(alpha = 0.30f)
                 Severity.HIGH     -> Color(0xFFFF6D00).copy(alpha = 0.25f)
@@ -336,13 +342,15 @@ private fun HomePlanCanvas(
         rooms.forEach { room ->
             val cx = ((room.left + room.right) / 2) * w
             val cy = ((room.top + room.bottom) / 2) * h
-            val textWidth = paint.measureText(room.name)
-            nativeCanvas.drawText(room.name, cx - textWidth / 2, cy + 10f, paint)
+            val textWidth = paint.measureText(room.label)
+            nativeCanvas.drawText(room.label, cx - textWidth / 2, cy + 10f, paint)
         }
     }
 }
 
 private data class RoomRect(val name: String, val left: Float, val top: Float, val right: Float, val bottom: Float)
+private data class RoomDef(val label: String, val roomId: String,
+                           val left: Float, val top: Float, val right: Float, val bottom: Float)
 
 // ── 即時警報項目 ──────────────────────────────────────────────────────────────
 
