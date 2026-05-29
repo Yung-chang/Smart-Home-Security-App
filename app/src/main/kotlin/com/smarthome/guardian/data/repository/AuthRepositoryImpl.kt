@@ -1,10 +1,12 @@
 package com.smarthome.guardian.data.repository
 
+import com.smarthome.guardian.BuildConfig
 import com.smarthome.guardian.data.remote.api.ApiService
 import com.smarthome.guardian.data.remote.dto.LoginRequest
 import com.smarthome.guardian.data.remote.dto.RefreshTokenRequest
 import com.smarthome.guardian.data.remote.dto.VerifyPinRequest
 import com.smarthome.guardian.domain.model.User
+import com.smarthome.guardian.domain.model.UserRole
 import com.smarthome.guardian.domain.repository.AuthRepository
 import com.smarthome.guardian.security.TokenManager
 import timber.log.Timber
@@ -27,6 +29,21 @@ class AuthRepositoryImpl @Inject constructor(
     private var cachedUser: User? = null
 
     override suspend fun login(email: String, password: String): Result<User> = runCatching {
+        // ── Debug 測試帳號（僅 Debug build 有效，Release 完全移除）───────────
+        if (BuildConfig.DEBUG && email == "test@smarthome.local" && password == "Test1234!") {
+            val enc     = java.util.Base64.getUrlEncoder().withoutPadding()
+            val header  = enc.encodeToString("""{"alg":"HS256","typ":"JWT"}""".toByteArray())
+            val payload = enc.encodeToString("""{"sub":"test-001","exp":9999999999}""".toByteArray())
+            val mockJwt = "$header.$payload.mock-sig"
+            tokenManager.saveTokens(mockJwt, mockJwt)
+            return@runCatching User(
+                id    = "test-user-001",
+                email = email,
+                name  = "測試管理員",
+                role  = UserRole.ADMIN,
+            ).also { cachedUser = it }
+        }
+
         // 裝置指紋：實際實作應整合 SecurityModule 的裝置識別碼
         val fingerprint = android.os.Build.FINGERPRINT.take(64)
 
