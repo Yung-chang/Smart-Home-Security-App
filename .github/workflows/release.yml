@@ -5,8 +5,11 @@ on:
     tags:
       - 'v*'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # 修正 Node.js 20 棄用警告
+
 permissions:
-  contents: write   # 建立 GitHub Release 必要
+  contents: write
 
 jobs:
   release:
@@ -34,30 +37,47 @@ jobs:
           key: gradle-${{ hashFiles('**/*.gradle*', '**/libs.versions.toml') }}
           restore-keys: gradle-
 
+      - name: Fix gradlew line endings & permissions
+        run: |
+          sed -i 's/\r//' gradlew
+          chmod +x gradlew
+
       - name: Decode Keystore
         run: |
           mkdir -p $HOME/keystore
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > $HOME/keystore/release.jks
+          echo "Keystore size: $(wc -c < $HOME/keystore/release.jks) bytes"
 
       - name: Create local.properties
         run: |
-          KSFILE="$HOME/keystore/release.jks"
-          KSPWD="${{ secrets.KEYSTORE_PASSWORD }}"
-          ALIAS="${{ secrets.KEY_ALIAS }}"
-          KEYPWD="${{ secrets.KEY_PASSWORD }}"
           SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
-          printf 'sdk.dir=%s\nKEYSTORE_FILE=%s\nKEYSTORE_PASSWORD=%s\nKEY_ALIAS=%s\nKEY_PASSWORD=%s\nAPI_BASE_URL=https\\://api.smarthome.local/\nMQTT_BROKER_URL=ssl\\://mqtt.smarthome.local\\:8883\nWS_BASE_URL=wss\\://api.smarthome.local/events\n' \
-            "$SDK" "$KSFILE" "$KSPWD" "$ALIAS" "$KEYPWD" > local.properties
+          echo "sdk.dir=$SDK"                                          > local.properties
+          echo "KEYSTORE_FILE=$HOME/keystore/release.jks"             >> local.properties
+          echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}"   >> local.properties
+          echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}"                   >> local.properties
+          echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}"             >> local.properties
+          echo 'API_BASE_URL=https\://api.smarthome.local/'           >> local.properties
+          echo 'MQTT_BROKER_URL=ssl\://mqtt.smarthome.local\:8883'    >> local.properties
+          echo 'WS_BASE_URL=wss\://api.smarthome.local/events'        >> local.properties
+          echo "--- local.properties preview (masked) ---"
+          grep -v PASSWORD local.properties || true
 
       - name: Create google-services.json
         run: |
-          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > app/google-services.json
-
-      - name: Grant execute permission
-        run: chmod +x gradlew
+          cat > app/google-services.json << 'JSONEOF'
+          ${{ secrets.GOOGLE_SERVICES_JSON }}
+          JSONEOF
 
       - name: Run Unit Tests
-        run: ./gradlew testDebugUnitTest --no-daemon
+        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace
+
+      - name: Upload Test Reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-failure
+          path: app/build/reports/tests/
+          retention-days: 3
 
       - name: Run Lint
         run: ./gradlew lintRelease --no-daemon
@@ -84,18 +104,18 @@ jobs:
         run: |
           TAG=${{ steps.version.outputs.tag }}
           mv app/build/outputs/apk/release/app-release.apk \
-             app/build/outputs/apk/release/SmartHomeGuardian-${TAG}.apk
+             "app/build/outputs/apk/release/SmartHomeGuardian-${TAG}.apk"
           mv app/build/outputs/bundle/release/app-release.aab \
-             app/build/outputs/bundle/release/SmartHomeGuardian-${TAG}.aab
+             "app/build/outputs/bundle/release/SmartHomeGuardian-${TAG}.aab"
 
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: SmartHomeGuardian-${{ steps.version.outputs.tag }}-apk
           path: app/build/outputs/apk/release/SmartHomeGuardian-*.apk
           retention-days: 30
 
-      - name: Upload AAB Artifact
+      - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
           name: SmartHomeGuardian-${{ steps.version.outputs.tag }}-aab
