@@ -104,6 +104,11 @@ android {
         unitTests.all { it.useJUnitPlatform() } // JUnit 5
         animationsDisabled = true
     }
+
+    lint {
+        baseline = file("lint-baseline.xml")
+        abortOnError = true
+    }
 }
 
 dependencies {
