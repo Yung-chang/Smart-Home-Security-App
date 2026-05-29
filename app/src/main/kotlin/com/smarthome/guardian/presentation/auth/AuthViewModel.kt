@@ -4,6 +4,10 @@ import androidx.biometric.BiometricPrompt
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.smarthome.guardian.BuildConfig
+import com.smarthome.guardian.domain.model.User
+import com.smarthome.guardian.domain.model.UserRole
+import com.smarthome.guardian.data.local.preferences.SecurePreferences
 import com.smarthome.guardian.domain.repository.AuthRepository
 import com.smarthome.guardian.security.SecurityChecker
 import com.smarthome.guardian.security.TokenManager
@@ -32,10 +36,30 @@ class AuthViewModel @Inject constructor(
     private val tokenManager: TokenManager,
     private val biometricHelper: BiometricHelper,
     private val securityChecker: SecurityChecker,
+    private val securePreferences: SecurePreferences,
 ) : ViewModel() {
 
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
+
+    // StateFlow 讓 Compose 能訂閱變化，解決 getter 只在首次組合時讀值的問題
+    private val _rememberedEmail    = MutableStateFlow(securePreferences.getRememberedEmail() ?: "")
+    private val _rememberMeEnabled  = MutableStateFlow(securePreferences.isRememberMeEnabled())
+    val rememberedEmail:   StateFlow<String>  = _rememberedEmail.asStateFlow()
+    val rememberMeEnabled: StateFlow<Boolean> = _rememberMeEnabled.asStateFlow()
+
+    /** 更新記住我設定（由 UI 層勾選框呼叫）。 */
+    fun setRememberMe(enabled: Boolean, email: String = "") {
+        securePreferences.setRememberMe(enabled)
+        _rememberMeEnabled.value = enabled
+        if (enabled && email.isNotBlank()) {
+            securePreferences.saveRememberedEmail(email)
+            _rememberedEmail.value = email
+        } else if (!enabled) {
+            securePreferences.clearRememberedEmail()
+            _rememberedEmail.value = ""
+        }
+    }
 
     // ── 初始化檢查 ─────────��──────────────────────────────────────────────────
 
@@ -90,6 +114,9 @@ class AuthViewModel @Inject constructor(
             authRepository.login(email, password)
                 .onSuccess { user ->
                     Timber.d("Credentials login success: ${user.id}")
+                    if (securePreferences.isRememberMeEnabled()) {
+                        securePreferences.saveRememberedEmail(email)
+                    }
                     _authState.value = AuthState.Authenticated(user)
                 }
                 .onFailure { e ->
@@ -121,7 +148,15 @@ class AuthViewModel @Inject constructor(
             title     = "SmartHome Guardian",
             subtitle  = "請使用生物辨識登入",
             onSuccess = {
-                viewModelScope.launch { refreshSession() }
+                if (BuildConfig.DEBUG) {
+                    // Debug：生物辨識成功直接以測試帳號登入（無後端）
+                    _authState.value = AuthState.Authenticated(
+                        User(id = "bio-user-001", email = "test@smarthome.local",
+                             name = "測試管理員", role = UserRole.ADMIN)
+                    )
+                } else {
+                    viewModelScope.launch { refreshSession() }
+                }
             },
             onFailure = {
                 // 單次識別失敗，保持 Loading 讓用戶重試
@@ -157,7 +192,11 @@ class AuthViewModel @Inject constructor(
 
         viewModelScope.launch {
             _authState.value = AuthState.Loading
-            val email = tokenManager.getAccessToken()?.let { extractEmailFromToken(it) }
+            // 優先從快取用戶或已儲存的 Email 取得，不依賴可能已過期的 Access Token
+            // （PIN 備援的使用場景正是 Access Token 過期時，直接讀 Token 永遠會失敗）
+            val email = authRepository.getCachedUser()?.email
+                ?: securePreferences.getUserEmail()
+                ?: tokenManager.getAccessToken()?.let { extractEmailFromToken(it) }
                 ?: run {
                     _authState.value = AuthState.Error("請重新登入", AuthErrorCode.TOKEN_EXPIRED)
                     return@launch
@@ -207,6 +246,63 @@ class AuthViewModel @Inject constructor(
     /** 用戶主動選擇 PIN 備援時呼叫。 */
     fun switchToPin() {
         _authState.value = AuthState.RequiresPin
+    }
+
+    /** PIN 對話框取消時重置至 Idle。 */
+    fun resetToIdle() {
+        _authState.value = AuthState.Idle
+    }
+
+    /** Debug 用：直接以測試帳號通過 PIN 驗證。 */
+    fun mockPinSuccess() {
+        _authState.value = AuthState.Authenticated(
+            User(id = "pin-user-001", email = "test@smarthome.local",
+                 name = "測試管理員", role = UserRole.ADMIN)
+        )
+    }
+
+    /** 是否已設定本地 PIN 碼。 */
+    fun hasLocalPin(): Boolean = authRepository.hasLocalPin()
+
+    /**
+     * 設定本地 PIN 碼並在 Debug 模式下直接登入。
+     * Release 模式：只儲存 PIN，使用者之後可以用 PIN 登入。
+     */
+    fun setupPin(pin: String) {
+        viewModelScope.launch {
+            authRepository.setupLocalPin(pin)
+                .onSuccess {
+                    // 設定完成後立即以相同 PIN 驗證，直接進入主畫面（Release + Debug 均適用）
+                    if (BuildConfig.DEBUG) {
+                        _authState.value = AuthState.Authenticated(
+                            User(id = "pin-user-001", email = "test@smarthome.local",
+                                 name = "測試管理員", role = UserRole.ADMIN)
+                        )
+                    } else {
+                        val email = authRepository.getCachedUser()?.email
+                            ?: securePreferences.getUserEmail()
+                            ?: run {
+                                _authState.value = AuthState.Error(
+                                    "請先以帳號密碼登入後再設定 PIN 碼", AuthErrorCode.TOKEN_EXPIRED)
+                                return@onSuccess
+                            }
+                        authRepository.verifyPin(email, pin)
+                            .onSuccess { user -> _authState.value = AuthState.Authenticated(user) }
+                            .onFailure { e ->
+                                _authState.value = AuthState.Error(
+                                    message = e.message ?: "設定 PIN 碼失敗",
+                                    code    = AuthErrorCode.UNKNOWN,
+                                )
+                            }
+                    }
+                }
+                .onFailure { e ->
+                    _authState.value = AuthState.Error(
+                        message = e.message ?: "設定 PIN 碼失敗",
+                        code    = AuthErrorCode.UNKNOWN,
+                    )
+                }
+        }
     }
 
     // ── 私有工具 ────────────────────────────��─────────────────────────────────

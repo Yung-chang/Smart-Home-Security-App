@@ -2,6 +2,7 @@ package com.smarthome.guardian.presentation.auth
 
 import android.view.WindowManager
 import androidx.compose.animation.*
+import com.smarthome.guardian.BuildConfig
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -63,26 +64,52 @@ fun LoginScreen(
     onAuthenticated: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel(),
 ) {
-    val context     = LocalContext.current
-    val authState   by viewModel.authState.collectAsStateWithLifecycle()
+    val context        = LocalContext.current
+    val authState      by viewModel.authState.collectAsStateWithLifecycle()
+    val rememberedEmail   by viewModel.rememberedEmail.collectAsStateWithLifecycle()
+    val rememberMeEnabled by viewModel.rememberMeEnabled.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     // FLAG_SECURE：防止螢幕截圖與錄影
     LaunchedEffect(Unit) {
         (context as? FragmentActivity)?.window
             ?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        // 啟動時檢查 Token 狀態：有效 Token → 自動登入；Refresh Token 有效 → 觸發生物辨識
+        viewModel.checkInitialAuthState()
     }
 
-    // 狀態監聽：成功 → 導航；錯誤 → Snackbar
+    var showPinDialog by remember { mutableStateOf(false) }
+
+    // 狀態監聽：成功 → 導航；RequiresBiometric → 自動觸發生物辨識；RequiresPin → 對話框；錯誤 → Snackbar
     LaunchedEffect(authState) {
         when (val state = authState) {
-            is AuthState.Authenticated -> onAuthenticated()
+            is AuthState.Authenticated    -> onAuthenticated()
+            is AuthState.RequiresBiometric -> {
+                (context as? FragmentActivity)?.let { viewModel.loginWithBiometric(it) }
+            }
+            is AuthState.RequiresPin      -> showPinDialog = true
             is AuthState.Error -> snackbarHostState.showSnackbar(
                 message     = state.message,
                 duration    = SnackbarDuration.Short,
             )
             else -> Unit
         }
+    }
+
+    if (showPinDialog) {
+        val isSetupMode = !viewModel.hasLocalPin()
+        PinDialog(
+            isSetupMode = isSetupMode,
+            onDismiss   = { showPinDialog = false; viewModel.resetToIdle() },
+            onConfirm   = { pin ->
+                when {
+                    isSetupMode                        -> viewModel.setupPin(pin)
+                    BuildConfig.DEBUG && pin == "1234" -> viewModel.mockPinSuccess()
+                    else                               -> viewModel.verifyPin(pin)
+                }
+                showPinDialog = false
+            },
+        )
     }
 
     Scaffold(
@@ -106,12 +133,19 @@ fun LoginScreen(
                 .padding(padding),
         ) {
             LoginContent(
-                authState = authState,
-                onLoginWithCredentials = viewModel::loginWithCredentials,
+                authState              = authState,
+                initialEmail           = rememberedEmail,
+                initialRememberMe      = rememberMeEnabled,
+                onLoginWithCredentials = { email, password ->
+                    viewModel.loginWithCredentials(email, password)
+                },
                 onLoginWithBiometric = {
                     (context as? FragmentActivity)?.let { viewModel.loginWithBiometric(it) }
                 },
-                onLoginWithPin = viewModel::switchToPin,
+                onLoginWithPin    = viewModel::switchToPin,
+                onRememberMeChange = { enabled, email ->
+                    viewModel.setRememberMe(enabled, email)
+                },
                 modifier = Modifier.align(Alignment.Center),
             )
         }
@@ -121,17 +155,21 @@ fun LoginScreen(
 @Composable
 private fun LoginContent(
     authState: AuthState,
+    initialEmail: String = "",
+    initialRememberMe: Boolean = false,
     onLoginWithCredentials: (String, String) -> Unit,
     onLoginWithBiometric: () -> Unit,
     onLoginWithPin: () -> Unit,
+    onRememberMeChange: (Boolean, String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
-    var email          by remember { mutableStateOf("") }
-    var password       by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var emailError     by remember { mutableStateOf<String?>(null) }
-    val focusManager   = LocalFocusManager.current
-    val isLoading      = authState is AuthState.Loading
+    var email           by remember(initialEmail)      { mutableStateOf(initialEmail) }
+    var password        by remember                    { mutableStateOf("") }
+    var passwordVisible by remember                    { mutableStateOf(false) }
+    var emailError      by remember                    { mutableStateOf<String?>(null) }
+    var rememberMe      by remember(initialRememberMe) { mutableStateOf(initialRememberMe) }
+    val focusManager    = LocalFocusManager.current
+    val isLoading       = authState is AuthState.Loading
 
     Column(
         modifier = modifier
@@ -223,7 +261,29 @@ private fun LoginContent(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        Spacer(Modifier.height(8.dp))
+        // ── 記住我 ────────────────────────────────────────────────────────────
+        Row(
+            modifier          = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Checkbox(
+                checked         = rememberMe,
+                onCheckedChange = {
+                    rememberMe = it
+                    onRememberMeChange(it, email.trim())
+                },
+                enabled = !isLoading,
+                colors  = CheckboxDefaults.colors(
+                    checkedColor   = PrimaryBlue,
+                    checkmarkColor = Color.Black,
+                ),
+            )
+            Text(
+                text     = "記住我",
+                color    = TextSecondary,
+                fontSize = 14.sp,
+            )
+        }
 
         // ── 登入按鈕 ──────────────────────────────────────────────────────────
         Button(
@@ -308,6 +368,98 @@ private fun outlinedTextFieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedTextColor   = Color.White,
 )
 
+// ── PIN 對話框（設定 / 驗證雙模式）─────────────────────────────────────────────
+
+@Composable
+private fun PinDialog(
+    isSetupMode: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var pin        by remember { mutableStateOf("") }
+    var confirmPin by remember { mutableStateOf("") }
+    var pinError   by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor   = Color(0xFF1A2235),
+        title = {
+            Text(
+                text       = if (isSetupMode) "設定 PIN 碼" else "PIN 碼驗證",
+                color      = Color.White,
+                fontWeight = FontWeight.Bold,
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text     = if (isSetupMode) "設定 4–8 位數字作為快速登入備援"
+                               else "請輸入您的備援 PIN 碼",
+                    color    = TextSecondary,
+                    fontSize = 13.sp,
+                )
+
+                OutlinedTextField(
+                    value         = pin,
+                    onValueChange = { if (it.length <= 8) { pin = it; pinError = null } },
+                    label         = { Text(if (isSetupMode) "新 PIN 碼" else "PIN 碼") },
+                    leadingIcon   = { Icon(Icons.Filled.Pin, null, tint = PrimaryBlue) },
+                    isError       = pinError != null,
+                    supportingText = pinError?.let { err -> { Text(err, color = ErrorRed) } },
+                    singleLine    = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.NumberPassword,
+                        imeAction    = if (isSetupMode) ImeAction.Next else ImeAction.Done,
+                    ),
+                    visualTransformation = PasswordVisualTransformation(),
+                    colors   = outlinedTextFieldColors(),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                if (isSetupMode) {
+                    OutlinedTextField(
+                        value         = confirmPin,
+                        onValueChange = { if (it.length <= 8) { confirmPin = it; pinError = null } },
+                        label         = { Text("確認 PIN 碼") },
+                        leadingIcon   = { Icon(Icons.Filled.Pin, null, tint = PrimaryBlue) },
+                        isError       = pinError != null,
+                        singleLine    = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.NumberPassword,
+                            imeAction    = ImeAction.Done,
+                        ),
+                        visualTransformation = PasswordVisualTransformation(),
+                        colors   = outlinedTextFieldColors(),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    when {
+                        pin.length < 4                       -> pinError = "PIN 碼至少需要 4 位數"
+                        isSetupMode && pin != confirmPin     -> pinError = "兩次輸入的 PIN 碼不一致"
+                        else                                 -> onConfirm(pin)
+                    }
+                },
+            ) {
+                Text(
+                    text       = if (isSetupMode) "設定" else "確認",
+                    color      = PrimaryBlue,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消", color = TextSecondary)
+            }
+        },
+    )
+}
+
 // ── Preview ───────────────────────────────────────────────────────────────────
 
 @Preview(showBackground = true, backgroundColor = 0xFF0A0E1A, name = "LoginScreen")
@@ -316,6 +468,8 @@ private fun LoginScreenPreview() {
     MaterialTheme {
         LoginContent(
             authState              = AuthState.Idle,
+            initialEmail           = "test@smarthome.local",
+            initialRememberMe      = true,
             onLoginWithCredentials = { _, _ -> },
             onLoginWithBiometric   = {},
             onLoginWithPin         = {},

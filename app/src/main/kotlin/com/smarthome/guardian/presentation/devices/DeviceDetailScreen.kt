@@ -54,7 +54,15 @@ fun DeviceDetailScreen(
 
     Scaffold(
         containerColor = Background,
-        snackbarHost   = { SnackbarHost(snackbarState) },
+        snackbarHost   = {
+            SnackbarHost(snackbarState) { data ->
+                Snackbar(
+                    snackbarData   = data,
+                    containerColor = Color(0xFF1A2235),
+                    contentColor   = Color.White,
+                )
+            }
+        },
         topBar = {
             TopAppBar(
                 title = {
@@ -124,8 +132,8 @@ private fun DevicePanel(
 
     when (device.type) {
         DeviceType.DOOR_LOCK -> DoorLockPanel(uiState = uiState, viewModel = viewModel)
-        DeviceType.LIGHT,
-        DeviceType.OUTLET    -> LightPanel(uiState = uiState, viewModel = viewModel)
+        DeviceType.LIGHT     -> LightPanel(uiState = uiState, viewModel = viewModel)
+        DeviceType.OUTLET    -> OutletPanel(uiState = uiState, viewModel = viewModel)
         DeviceType.CAMERA    -> CameraPanel(
             uiState  = uiState,
             viewModel = viewModel,

@@ -33,4 +33,13 @@ interface AlertDao {
 
     @Query("DELETE FROM security_alerts WHERE timestamp < :beforeMs")
     suspend fun deleteOlderThan(beforeMs: Long): Int
+
+    @Query("DELETE FROM security_alerts WHERE isAcknowledged = 1 AND timestamp < :beforeMs")
+    suspend fun deleteAcknowledgedOlderThan(beforeMs: Long): Int
+
+    @Query("DELETE FROM security_alerts")
+    suspend fun deleteAll()
+
+    @Query("SELECT COUNT(*) FROM security_alerts")
+    suspend fun count(): Int
 }

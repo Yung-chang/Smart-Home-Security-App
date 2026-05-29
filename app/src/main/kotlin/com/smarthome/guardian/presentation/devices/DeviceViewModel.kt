@@ -3,12 +3,15 @@ package com.smarthome.guardian.presentation.devices
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.smarthome.guardian.domain.model.AccessAction
+import com.smarthome.guardian.domain.model.AccessLog
 import com.smarthome.guardian.domain.model.CommandType
 import com.smarthome.guardian.domain.model.DeviceCommand
 import com.smarthome.guardian.domain.model.DeviceOperation
 import com.smarthome.guardian.domain.model.DeviceType
 import com.smarthome.guardian.domain.model.SensorReading
 import com.smarthome.guardian.domain.model.SensorSnapshot
+import com.smarthome.guardian.domain.model.UnlockMethod
 import com.smarthome.guardian.domain.repository.DeviceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -55,8 +58,44 @@ class DeviceViewModel @Inject constructor(
                         _uiState.value.sensorHistory.isEmpty()) {
                         injectDemoSensorData(device.type)
                     }
+                    // 門鎖：注入示範進出記錄
+                    if (device != null && device.type == DeviceType.DOOR_LOCK &&
+                        _uiState.value.accessLogs.isEmpty()) {
+                        injectDemoAccessLogs(device.id)
+                    }
                 }
         }
+    }
+
+    private fun injectDemoAccessLogs(deviceId: String) {
+        val now = System.currentTimeMillis()
+        val logs = listOf(
+            AccessLog(id = "$deviceId-log-1", deviceId = deviceId,
+                userId = "test-user-001", userName = "測試管理員",
+                action = AccessAction.UNLOCK, method = UnlockMethod.APP,
+                timestamp = now - 25_000L),
+            AccessLog(id = "$deviceId-log-2", deviceId = deviceId,
+                userId = null, userName = "訪客 A",
+                action = AccessAction.TEMP_CODE_USED, method = UnlockMethod.TEMP_CODE,
+                timestamp = now - 3_600_000L),
+            AccessLog(id = "$deviceId-log-3", deviceId = deviceId,
+                userId = "test-user-001", userName = "測試管理員",
+                action = AccessAction.LOCK, method = UnlockMethod.AUTO_LOCK,
+                timestamp = now - 7_200_000L),
+            AccessLog(id = "$deviceId-log-4", deviceId = deviceId,
+                userId = null, userName = "未知",
+                action = AccessAction.FAILED_ATTEMPT, method = UnlockMethod.PIN,
+                timestamp = now - 14_400_000L, isSuccessful = false),
+            AccessLog(id = "$deviceId-log-5", deviceId = deviceId,
+                userId = "family-001", userName = "家庭成員",
+                action = AccessAction.UNLOCK, method = UnlockMethod.FINGERPRINT,
+                timestamp = now - 86_400_000L),
+            AccessLog(id = "$deviceId-log-6", deviceId = deviceId,
+                userId = "family-001", userName = "家庭成員",
+                action = AccessAction.LOCK, method = UnlockMethod.PHYSICAL_KEY,
+                timestamp = now - 90_000_000L),
+        )
+        _uiState.update { it.copy(accessLogs = logs) }
     }
 
     private fun injectDemoSensorData(type: DeviceType) {

@@ -1,6 +1,8 @@
 package com.smarthome.guardian.data.repository
 
+import com.smarthome.guardian.BuildConfig
 import com.smarthome.guardian.data.local.database.DeviceDao
+import com.smarthome.guardian.debug.DemoSimulator
 import com.smarthome.guardian.data.local.database.entity.DeviceEntity
 import com.smarthome.guardian.data.remote.api.ApiService
 import com.smarthome.guardian.data.remote.dto.DeviceCommandRequest
@@ -42,12 +44,17 @@ class DeviceRepositoryImpl @Inject constructor(
     private val webSocketManager: WebSocketManager,
     private val deviceDao: DeviceDao,
     private val hmacSigner: HmacSigner,
+    private val demoSimulator: DemoSimulator,
 ) : DeviceRepository {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     init {
         subscribeToWebSocketUpdates()
+        scope.launch {
+            demoSimulator.seedIfEmpty()
+            demoSimulator.startSimulation()
+        }
     }
 
     // ── 查詢 ──────────────────────────────────────────────────────────────────
@@ -64,6 +71,16 @@ class DeviceRepositoryImpl @Inject constructor(
     // ── 指令 ──────────────────────────────────────────────────────────────────
 
     override suspend fun sendCommand(
+        deviceId: String,
+        operation: DeviceOperation,
+        payload: String,
+    ): Result<Unit> {
+        // Debug 模式：直接更新本地 DB，不呼叫後端
+        if (BuildConfig.DEBUG) return demoSimulator.handleCommand(deviceId, operation)
+        return sendCommandToApi(deviceId, operation, payload)
+    }
+
+    private suspend fun sendCommandToApi(
         deviceId: String,
         operation: DeviceOperation,
         payload: String,
@@ -117,7 +134,13 @@ class DeviceRepositoryImpl @Inject constructor(
 
     // ── 刷新（REST → Room） ───────────────────────────────────────────────────
 
-    override suspend fun refresh(): Result<Unit> = runCatching {
+    override suspend fun refresh(): Result<Unit> {
+        // Debug 模式：略過網路請求
+        if (BuildConfig.DEBUG) return Result.success(Unit)
+        return refreshFromApi()
+    }
+
+    private suspend fun refreshFromApi(): Result<Unit> = runCatching {
         val response = apiService.getDevices()
         if (!response.isSuccessful) {
             throw RuntimeException("refresh failed: HTTP ${response.code()}")

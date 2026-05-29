@@ -56,6 +56,35 @@ class SecurePreferences @Inject constructor(
     fun isBiometricEnabled(): Boolean =
         prefs.getBoolean(KEY_BIOMETRIC_ENABLED, false)
 
+    // ── 記住我 ────────────────────────────────────────────────────────────────
+
+    fun setRememberMe(enabled: Boolean) =
+        prefs.edit().putBoolean(KEY_REMEMBER_ME, enabled).apply()
+
+    fun isRememberMeEnabled(): Boolean =
+        prefs.getBoolean(KEY_REMEMBER_ME, false)
+
+    fun saveRememberedEmail(email: String) =
+        prefs.edit().putString(KEY_REMEMBERED_EMAIL, email).apply()
+
+    fun getRememberedEmail(): String? =
+        prefs.getString(KEY_REMEMBERED_EMAIL, null)
+
+    fun clearRememberedEmail() =
+        prefs.edit().remove(KEY_REMEMBERED_EMAIL).remove(KEY_REMEMBER_ME).apply()
+
+    // ── Demo 資料版本 ─────────────────────────────────────────────────────────
+
+    fun getDemoDataVersion(): String = prefs.getString(KEY_DEMO_DATA_VERSION, "") ?: ""
+    fun saveDemoDataVersion(v: String) = prefs.edit().putString(KEY_DEMO_DATA_VERSION, v).apply()
+
+    // ── 本地 PIN ──────────────────────────────────────────────────────────────
+
+    fun savePinHash(hash: String) = prefs.edit().putString(KEY_PIN_HASH, hash).apply()
+    fun getPinHash(): String?     = prefs.getString(KEY_PIN_HASH, null)
+    fun hasLocalPin(): Boolean    = prefs.contains(KEY_PIN_HASH)
+    fun clearPin()                = prefs.edit().remove(KEY_PIN_HASH).apply()
+
     // ── FCM Token ─────────────────────────────────────────────────────────────
 
     /** 儲存 FCM 推播 Token（加密保護，避免 Token 洩露被用於偽造推播）。 */
@@ -86,5 +115,9 @@ class SecurePreferences @Inject constructor(
         const val KEY_USER_EMAIL       = "user_email"
         const val KEY_BIOMETRIC_ENABLED = "biometric_enabled"
         const val KEY_FCM_TOKEN          = "fcm_token"
+        const val KEY_PIN_HASH           = "local_pin_hash"
+        const val KEY_REMEMBER_ME        = "remember_me"
+        const val KEY_REMEMBERED_EMAIL   = "remembered_email"
+        const val KEY_DEMO_DATA_VERSION  = "demo_data_version"
     }
 }

@@ -31,4 +31,10 @@ interface DeviceDao {
 
     @Query("DELETE FROM devices")
     suspend fun deleteAll()
+
+    @Query("SELECT COUNT(*) FROM devices")
+    suspend fun count(): Int
+
+    @Query("SELECT * FROM devices")
+    suspend fun getAllOnce(): List<DeviceEntity>
 }

@@ -33,4 +33,13 @@ interface AuthRepository {
 
     /** 取得目前已快取的登入使用者資訊（不發出網路請求）。 */
     fun getCachedUser(): User?
+
+    /**
+     * 設定本地 PIN 碼（SHA-256 雜湊後存入 EncryptedSharedPreferences）。
+     * 無需後端，即使無網路也可設定。
+     */
+    suspend fun setupLocalPin(pin: String): Result<Unit>
+
+    /** 是否已設定本地 PIN 碼。 */
+    fun hasLocalPin(): Boolean
 }
