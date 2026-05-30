@@ -4,7 +4,7 @@
     "replacementText": "test@smarthome.local",
     "elementDescriptors": [
       {
-        "contentDescription": "Email"
+        "resourceId": "com.smarthome.guardian:id/email_input"
       }
     ]
   },
@@ -13,7 +13,7 @@
     "replacementText": "Test1234!",
     "elementDescriptors": [
       {
-        "contentDescription": "password"
+        "resourceId": "com.smarthome.guardian:id/password_input"
       }
     ]
   },
@@ -34,7 +34,7 @@
     "replacementText": "1234",
     "elementDescriptors": [
       {
-        "contentDescription": "pin_input"
+        "resourceId": "com.smarthome.guardian:id/pin_input"
       }
     ]
   },
@@ -43,7 +43,7 @@
     "replacementText": "1234",
     "elementDescriptors": [
       {
-        "contentDescription": "pin_confirm"
+        "resourceId": "com.smarthome.guardian:id/pin_confirm"
       }
     ]
   },

@@ -15,6 +15,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.navigation.NavType
@@ -85,8 +87,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             SmartHomeGuardianTheme {
                 Surface(
-                    modifier = Modifier.fillMaxSize().background(Background),
-                    color    = Background,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Background)
+                        .semantics { testTagsAsResourceId = true },
+                    color = Background,
                 ) {
                     SmartHomeNavGraph()
                 }

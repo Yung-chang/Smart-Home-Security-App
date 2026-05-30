@@ -22,12 +22,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -226,7 +225,7 @@ private fun LoginContent(
                 onNext = { focusManager.moveFocus(FocusDirection.Down) }
             ),
             colors = outlinedTextFieldColors(),
-            modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Email" },
+            modifier = Modifier.fillMaxWidth().testTag("email_input"),
         )
 
         // ── 密碼欄位 ──────────────────────────────────────────────────────────
@@ -262,7 +261,7 @@ private fun LoginContent(
                 }
             ),
             colors   = outlinedTextFieldColors(),
-            modifier = Modifier.fillMaxWidth().semantics { contentDescription = "password" },
+            modifier = Modifier.fillMaxWidth().testTag("password_input"),
         )
 
         // ── 記住我 ────────────────────────────────────────────────────────────
@@ -417,7 +416,7 @@ private fun PinDialog(
                     ),
                     visualTransformation = PasswordVisualTransformation(),
                     colors   = outlinedTextFieldColors(),
-                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "pin_input" },
+                    modifier = Modifier.fillMaxWidth().testTag("pin_input"),
                 )
 
                 if (isSetupMode) {
@@ -434,7 +433,7 @@ private fun PinDialog(
                         ),
                         visualTransformation = PasswordVisualTransformation(),
                         colors   = outlinedTextFieldColors(),
-                        modifier = Modifier.fillMaxWidth().semantics { contentDescription = "pin_confirm" },
+                        modifier = Modifier.fillMaxWidth().testTag("pin_confirm"),
                     )
                 }
             }
