@@ -22,6 +22,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -224,7 +226,7 @@ private fun LoginContent(
                 onNext = { focusManager.moveFocus(FocusDirection.Down) }
             ),
             colors = outlinedTextFieldColors(),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Email" },
         )
 
         // ── 密碼欄位 ──────────────────────────────────────────────────────────
@@ -260,7 +262,7 @@ private fun LoginContent(
                 }
             ),
             colors   = outlinedTextFieldColors(),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().semantics { contentDescription = "password" },
         )
 
         // ── 記住我 ────────────────────────────────────────────────────────────
