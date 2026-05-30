@@ -22,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.biometric.BiometricManager
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -171,8 +172,15 @@ private fun LoginContent(
     var passwordVisible by remember                    { mutableStateOf(false) }
     var emailError      by remember                    { mutableStateOf<String?>(null) }
     var rememberMe      by remember(initialRememberMe) { mutableStateOf(initialRememberMe) }
+    val context         = LocalContext.current
     val focusManager    = LocalFocusManager.current
     val isLoading       = authState is AuthState.Loading
+    val biometricStatus = remember {
+        BiometricManager.from(context).canAuthenticate(
+            BiometricManager.Authenticators.BIOMETRIC_STRONG or
+            BiometricManager.Authenticators.DEVICE_CREDENTIAL
+        )
+    }
 
     Column(
         modifier = modifier
@@ -329,19 +337,40 @@ private fun LoginContent(
         }
 
         // ── 生物辨識按鈕 ──────────────────────────────────────────────────────
-        OutlinedButton(
-            onClick  = onLoginWithBiometric,
-            enabled  = !isLoading,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryBlue),
-            border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryBlue),
-            shape  = RoundedCornerShape(8.dp),
-        ) {
-            Icon(Icons.Filled.Fingerprint, null, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.width(8.dp))
-            Text("使用生物辨識登入")
+        // 無生物辨識硬體時隱藏按鈕
+        if (biometricStatus != BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE) {
+            val notEnrolled = biometricStatus == BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED
+            OutlinedButton(
+                onClick  = if (notEnrolled) {
+                    // 引導使用者至系統設定登記指紋
+                    {
+                        val intent = android.content.Intent(
+                            android.provider.Settings.ACTION_BIOMETRIC_ENROLL
+                        ).apply {
+                            putExtra(
+                                android.provider.Settings.EXTRA_BIOMETRIC_AUTHENTICATORS_ALLOWED,
+                                BiometricManager.Authenticators.BIOMETRIC_STRONG
+                            )
+                        }
+                        context.startActivity(intent)
+                    }
+                } else onLoginWithBiometric,
+                enabled  = !isLoading,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = if (notEnrolled) TextSecondary else PrimaryBlue
+                ),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp, if (notEnrolled) TextSecondary else PrimaryBlue
+                ),
+                shape  = RoundedCornerShape(8.dp),
+            ) {
+                Icon(Icons.Filled.Fingerprint, null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(if (notEnrolled) "設定指紋（前往系統設定）" else "使用生物辨識登入")
+            }
         }
 
         // ── PIN 備援 ──────────────────────────────────────────────────────────
