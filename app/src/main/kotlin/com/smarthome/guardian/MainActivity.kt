@@ -67,8 +67,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // OWASP M2：全域防截圖，所有畫面均受保護
-        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        // OWASP M2：Release build 防截圖；Debug build 允許（供 Robo Test / 截圖工具使用）
+        if (!BuildConfig.DEBUG) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
 
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)

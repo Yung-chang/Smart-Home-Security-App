@@ -70,10 +70,12 @@ fun LoginScreen(
     val rememberMeEnabled by viewModel.rememberMeEnabled.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // FLAG_SECURE：防止螢幕截圖與錄影
     LaunchedEffect(Unit) {
-        (context as? FragmentActivity)?.window
-            ?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        // FLAG_SECURE 只在 Release build 設定（Debug 允許 Robo Test 截圖）
+        if (!BuildConfig.DEBUG) {
+            (context as? FragmentActivity)?.window
+                ?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
         // 啟動時檢查 Token 狀態：有效 Token → 自動登入；Refresh Token 有效 → 觸發生物辨識
         viewModel.checkInitialAuthState()
     }
