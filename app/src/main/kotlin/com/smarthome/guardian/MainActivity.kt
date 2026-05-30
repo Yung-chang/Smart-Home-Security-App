@@ -164,6 +164,7 @@ private fun SmartHomeNavGraph() {
                 onNavigateToSecurity = { navController.navigate(AppRoutes.SECURITY) },
                 onNavigateToDevice   = { id -> navController.navigate(AppRoutes.deviceDetail(id)) },
                 onNavigateToSettings = { navController.navigate(AppRoutes.ACCESS_CONTROL) },
+                onNavigateToAuditLog = { navController.navigate(AppRoutes.AUDIT_LOGS) },
                 onAddDevice          = { /* TODO */ },
                 onLogout             = {
                     authViewModel.logout()

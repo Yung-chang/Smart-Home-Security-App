@@ -48,6 +48,7 @@ fun DashboardScreen(
     onNavigateToSecurity: () -> Unit,
     onNavigateToDevice: (String) -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToAuditLog: () -> Unit = {},
     onAddDevice: () -> Unit,
     onLogout: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
@@ -101,6 +102,7 @@ fun DashboardScreen(
                 unreadAlertCount = uiState.unreadAlertCount,
                 onNotifications  = onNavigateToSecurity,
                 onSettings       = onNavigateToSettings,
+                onAuditLog       = onNavigateToAuditLog,
                 onLogout         = { showLogoutDialog = true },
             )
         },
@@ -147,6 +149,7 @@ private fun DashboardTopBar(
     unreadAlertCount: Int,
     onNotifications: () -> Unit,
     onSettings: () -> Unit,
+    onAuditLog: () -> Unit = {},
     onLogout: () -> Unit = {},
 ) {
     TopAppBar(
@@ -235,6 +238,15 @@ private fun DashboardTopBar(
                             },
                             onClick = {},
                             enabled = false,
+                        )
+                        HorizontalDivider()
+                        // 稽核日誌
+                        DropdownMenuItem(
+                            text    = { Text("稽核日誌") },
+                            onClick = { expanded = false; onAuditLog() },
+                            leadingIcon = {
+                                Icon(Icons.Filled.Shield, contentDescription = null, tint = PrimaryBlue)
+                            },
                         )
                         HorizontalDivider()
                         // 登出

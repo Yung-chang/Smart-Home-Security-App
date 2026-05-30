@@ -12,6 +12,8 @@ import com.smarthome.guardian.domain.model.DeviceType
 import com.smarthome.guardian.domain.model.SensorReading
 import com.smarthome.guardian.domain.model.SensorSnapshot
 import com.smarthome.guardian.domain.model.UnlockMethod
+import com.smarthome.guardian.data.logger.AuditLogger
+import com.smarthome.guardian.domain.model.AuditAction
 import com.smarthome.guardian.domain.repository.DeviceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -32,6 +34,7 @@ import javax.inject.Inject
 @HiltViewModel
 class DeviceViewModel @Inject constructor(
     private val deviceRepository: DeviceRepository,
+    private val auditLogger: AuditLogger,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -308,8 +311,12 @@ class DeviceViewModel @Inject constructor(
     private fun sendCommandInternal(command: DeviceCommand) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSendingCommand = true) }
-            // TODO PROMPT 07: checkPermission(command)
-            // TODO PROMPT 08: auditLogger.log(DEVICE_CONTROL, deviceId, command)
+            auditLogger.log(
+                action   = AuditAction.DEVICE_CONTROL,
+                targetId = command.deviceId,
+                before   = mapOf("type" to command.type.name),
+                after    = command.parameters,
+            )
             deviceRepository.sendCommand(
                 deviceId  = command.deviceId,
                 operation = DeviceOperation.TOGGLE, // repository maps CommandType → Operation
