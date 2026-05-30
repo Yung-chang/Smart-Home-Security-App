@@ -1,0 +1,62 @@
+[
+  {
+    "eventType": "VIEW_TEXT_CHANGED",
+    "replacementText": "test@smarthome.local",
+    "elementDescriptors": [
+      {
+        "contentDescription": "Email"
+      }
+    ]
+  },
+  {
+    "eventType": "VIEW_TEXT_CHANGED",
+    "replacementText": "Test1234!",
+    "elementDescriptors": [
+      {
+        "contentDescription": "password"
+      }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      {
+        "text": "登入"
+      }
+    ]
+  },
+  {
+    "eventType": "DELAYED_MESSAGE_POSTED",
+    "delayTime": 3000
+  },
+  {
+    "eventType": "VIEW_TEXT_CHANGED",
+    "replacementText": "1234",
+    "elementDescriptors": [
+      {
+        "contentDescription": "pin_input"
+      }
+    ]
+  },
+  {
+    "eventType": "VIEW_TEXT_CHANGED",
+    "replacementText": "1234",
+    "elementDescriptors": [
+      {
+        "contentDescription": "pin_confirm"
+      }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      {
+        "text": "設定"
+      }
+    ]
+  },
+  {
+    "eventType": "DELAYED_MESSAGE_POSTED",
+    "delayTime": 2000
+  }
+]

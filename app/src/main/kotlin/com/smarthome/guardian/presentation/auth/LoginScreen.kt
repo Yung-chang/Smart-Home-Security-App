@@ -417,7 +417,7 @@ private fun PinDialog(
                     ),
                     visualTransformation = PasswordVisualTransformation(),
                     colors   = outlinedTextFieldColors(),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "pin_input" },
                 )
 
                 if (isSetupMode) {
@@ -434,7 +434,7 @@ private fun PinDialog(
                         ),
                         visualTransformation = PasswordVisualTransformation(),
                         colors   = outlinedTextFieldColors(),
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().semantics { contentDescription = "pin_confirm" },
                     )
                 }
             }
